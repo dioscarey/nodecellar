@@ -1,37 +1,73 @@
-# Node Cellar Sample Application with Backbone.js, Twitter Bootstrap, Node.js, Express, and MongoDB #
+## ism-cli
 
-"Node Cellar" is a sample CRUD application built with with Backbone.js, Twitter Bootstrap, Node.js, Express, and MongoDB.
+install:
 
-The application allows you to browse through a list of wines, as well as add, update, and delete wines.
+    npm i -g @a3labs/injectsharedmodules-cli
 
-This application is further documented [here](http://coenraets.org/blog).
+ism.yaml file must be in the root of the project.
 
-The application is also hosted online. You can test it [here](http://nodecellar.coenraets.org).
+`yml 
+    projectPath: ./
+    sharedModulesPath: _shared_modules/
+    functionsPath: ./
+`
 
+then run
 
-## To run the application on your own Heroku account:##
+    ims-cli init
 
-1. Install the [Heroku Toolbelt](http://toolbelt.heroku.com)
+## Creating a shared module
 
-2. [Sign up](http://heroku.com/signup) for a Heroku account
+Your shared module package needs to have the next script:
+`json 
+    ...,
+    "scripts": {
+    	...,
+    	"postinstall":  "ism-cli --internal --target=${PWD##*/};",
+    	...,
+    },
+    ....,
+`
 
-3. Login to Heroku from the `heroku` CLI:
+If your shared module depends on another shared module, add the "sharedModulesDependencies" param in your package.json.
+Example:
 
-        $ heroku login
+      ...
+        sharedModulesDependencies: ["my-shared-module-name", "another-sm"],
+      ...
 
-4. Create a new app on Heroku:
+## Install your Shared Module in the Cloud Function
 
-        $ heroku create
+All Cloud Functions need to have the next script in the package.json file
 
-5. Add the [MongoLab Heroku Add-on](http://addons.heroku.com/mongolab)
+    ...
+    "scripts": {
+    	....
+    	"preinstall":  "if [[ ${PWD} =~ hm-cloud-functions ]]; then ism-cli --target=${PWD##*/}; fi",
+    	....
+    },
+    ....
 
-        $ heroku addons:add mongolab
+## Shared Modules dependencies in your Cloud Function
 
-6. Upload the app to Heroku:
+To add your shared modules in the project, you must have the param "sharedModulesDependencies" as an array in the cloud function package.
 
-        $ git push heroku master
+ Example:
 
-7. Open the app in your browser:
+    ...
+    sharedModulesDependencies: ["my-shared-module-name", "another-sm"],
+    ...
 
-        $ heroku open
+## How it works
 
+Cloud function  
+  
+When ism-cli starts the process in your Cloud Function, it creates a folder with the name  of _shared_module, then, it compress all the shared modules dependencies as a tarball file and install them into the _shared_module path.
+
+Note: ism-cli uses `npm pack`to compress a shared module.
+
+If a Shared Module dependes on another Shared module, it creates a _INTERNAL_DEPENDENCIES folder into the _shared_module path.
+
+Finally, it updates the package dependencies with the paths to the shared modules tarballs generated previously.
+
+Shared Module
